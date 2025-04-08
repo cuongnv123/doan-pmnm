@@ -31,6 +31,7 @@ class ShopController extends Controller
             $category = Category::where('slug', $categorySlug)->first();
             $products = $products->where('category_id', $category->id);
             $categorySelected = $category->id;
+            
         }
         if (!empty($subCategorySlug)) {
             $subCategory = SubCategory::where('slug', $subCategorySlug)->first();

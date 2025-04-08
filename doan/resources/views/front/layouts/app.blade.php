@@ -203,9 +203,9 @@
                     <div class="footer-card">
                         <h3>{{ __('Contact US') }}</h3>
 
-                        {{ __('Phu Dien, Bac Tu Liem, Hanoi') }} <br>
-                        tuvux14@example.com <br>
-                        0369944555</p>
+                        {{ __('Hoan Mai, Hanoi') }} <br>
+                        cuong@gmail.com <br>
+                        0352709881</p>
                     </div>
                 </div>
 
@@ -244,7 +244,7 @@
                 <div class="row">
                     <div class="col-12 mt-3">
                         <div class="copy-right text-center">
-                            <p>{{ __('© Copyright 2024 Amazing Shop. All Rights Reserved') }}</p>
+                            <p>{{ __('© Copyright 2025 Amazing Shop. All Rights Reserved') }}</p>
                         </div>
                     </div>
                 </div>

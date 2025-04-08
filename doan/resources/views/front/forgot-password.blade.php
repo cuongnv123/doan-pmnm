@@ -15,12 +15,12 @@
 
     <section class=" section-10">
         <div class="container">
-            @if (Session::has('success'))
+            @if (session()->has('success'))
                 <div class="alert alert-success">
                     {{ Session::get('success') }}
                 </div>
             @endif
-            @if (Session::has('error'))
+            @if (session()->has('error'))
                 <div class="alert alert-danger">
                     {{ Session::get('error') }}
                 </div>

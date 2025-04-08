@@ -18,8 +18,11 @@
         </a>
     </li>
     <li class="nav-item">
-        <a href="{{ route('account.logout') }}" class="nav-link font-weight-bold" role="tab"
-            aria-controls="tab-register" aria-expanded="false"><i class="fas fa-sign-out-alt"></i>{{ __('Logout') }}
-        </a>
+        <form action="{{ route('account.logout') }}" method="POST" style="display: inline;">
+            @csrf
+            <button type="submit" class="nav-link font-weight-bold" style="background: none; border: none; color: inherit; padding: 0;">
+                <i class="fas fa-sign-out-alt"></i>{{ __('Logout') }}
+            </button>
+        </form>
     </li>
 </ul>

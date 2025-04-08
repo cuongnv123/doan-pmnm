@@ -17,12 +17,12 @@
         <div class="container">
             @if (session()->has('success'))
                 <div class="alert alert-success">
-                    {{ Session::get('success') }}
+                    {{ session()->get('success') }}
                 </div>
             @endif
             @if (session()->has('error'))
                 <div class="alert alert-danger">
-                    {{ Session::get('error') }}
+                    {{ session()->get('error') }}
                 </div>
             @endif
             <div class="login-form">

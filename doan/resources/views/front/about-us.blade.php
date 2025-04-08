@@ -6,13 +6,13 @@
                 <!-- Ảnh về cửa hàng -->
                 <div class="col-md-6">
                     <img src="{{ asset('front-assets/images/bg1.jpg') }}" class="w-100 mb-4"
-                        alt="Không gian cửa hàng Anhtustore">
+                        alt="Không gian cửa hàng Cuongstore">
                 </div>
                 <div class="text col-md-6">
                     <span>{{ __('ABOUT-US') }}</span>
-                    <h2>{{ __('Anhtustore - Bringing technology closer to you') }}</h2>
+                    <h2>{{ __('Cuongstore - Bringing technology closer to you') }}</h2>
                     <p>
-                        <strong>Anhtustore </strong>
+                        <strong>Cuongstore </strong>
                         {{ __('is where you find the latest, most prestigious technology products from the world leading brands. We are committed to providing genuine phones, along with dedicated, professional customer care services.') }}
                     </p>
                 </div>
