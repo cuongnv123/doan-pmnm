@@ -78,11 +78,16 @@ class CartController extends Controller
 
     public function cart()
     {
-        $cartContent = Cart::content();
-        //dd($cartContent);
+        // Lấy giỏ hàng từ session
+        $cartContent = session()->get('cart', []);
+    
+        // Truyền giỏ hàng vào view
         $data['cartContent'] = $cartContent;
+    
+        // Trả về view với giỏ hàng
         return view('front.cart', $data);
     }
+    
     public function updateCart(Request $request)
     {
         $rowId = $request->rowId;

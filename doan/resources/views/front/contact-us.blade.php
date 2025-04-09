@@ -32,9 +32,9 @@
                         <!-- Contact info -->
                         <div class="contact-text">
                             <h5 class="mb-0 text-uppercase pb-2">{{ __('Information') }}</h5>
-                            <p class="mb-0">{{ __('Address') }} : {{ __('Phu Dien, Bac Tu Liem, Hanoi') }} </p>
-                            <p class="mb-0">{{ __('Phone') }}: 0369955555</p>
-                            <p class="mb-0">Email: anhtustore@gmail.com</p>
+                            <p class="mb-0">{{ __('Address') }} : {{ __('Hoang Mai, Hanoi') }} </p>
+                            <p class="mb-0">{{ __('Phone') }}: 0352709881</p>
+                            <p class="mb-0">Email: cuong@gmail.com</p>
                         </div>
 
 
