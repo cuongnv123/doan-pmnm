@@ -155,12 +155,12 @@ Route::group(['prefix' => 'admin'], function () {
     Route::get('/export-month-report', [HomeController::class, 'export_monthsaleReport'])->name('admin.export_monthsaleReport');
     Route::get('/logout', [HomeController::class, 'logout'])->name('admin.logout');
     // Category Routes
-    Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
-    Route::get('/categories/create', [CategoryController::class, 'create'])->name('categories.create');
-    Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
-    Route::get('/categories/edit/{category}', [CategoryController::class, 'edit'])->name('categories.edit');
-    Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
-    Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.delete');
+    Route::get('/admin/categories', [CategoryController::class, 'index'])->name('categories.index');
+    Route::get('/admin/categories/create', [CategoryController::class, 'create'])->name('categories.create');
+    Route::post('/admin/categories', [CategoryController::class, 'store'])->name('categories.store');
+    Route::get('/admin/categories/edit/{category}', [CategoryController::class, 'edit'])->name('categories.edit');
+    Route::put('/admin/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
+    Route::delete('/admin/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.delete');
     // SubCategory Routes
     Route::get('/sub-categories', [SubCategoryController::class, 'index'])->name('sub-categories.index');
     Route::get('/sub-categories/create', [SubCategoryController::class, 'create'])->name('sub-categories.create');
@@ -269,7 +269,8 @@ Route::group(['prefix' => 'admin'], function () {
     Route::post('/process-change-password', [SettingController::class, 'processChangePassword'])->name('admin.processChangePassword');
 
     //temp-images.create
-    Route::post('/upload-temp-image', [TempImagesController::class, 'create'])->name('temp-images.create');
+    Route::post('/admin/upload-temp-image', [TempImagesController::class, 'create'])->name('temp-images.create');
+
 
 
     Route::get('/getSlug', function (Request $request) {

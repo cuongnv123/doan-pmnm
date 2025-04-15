@@ -34,75 +34,56 @@ class CategoryController extends Controller
 
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required',
-            'slug' => 'required|unique:categories',
+        // Validate input
+    $validator = Validator::make($request->all(), [
+        'name' => 'required',
+        'slug' => 'required|unique:categories',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => false,
+            'errors' => $validator->errors()
         ]);
-        if ($validator->passes()) {
-            $category = new Category();
-            $category->name = $request->name;
-            $category->slug = $request->slug;
-            $category->status = $request->status;
-            $category->showHome = $request->showHome;
-            $category->save();
+    }
 
-            $oldImage = $category->image;
-
-
-            // Save Image Here
-            if (!empty($request->image_id)) {
-                $tempImage = TempImage::find($request->image_id);
-                if ($tempImage) {
-                    $extArray = explode('.', $tempImage->name);
-                    $ext = last($extArray);
-
-                    $newImageName = $category->id . '-' . time() . '.' . $ext;
-                    $sPath = public_path() . '/temp/' . $tempImage->name;
-                    $dPath = public_path() . '/uploads/category/' . $newImageName;
-
-                    // Kiểm tra xem tệp ảnh có tồn tại và có thể đọc được không
-                    if (file_exists($sPath) && is_readable($sPath)) {
-                        // Sao chép tệp ảnh đến thư mục chính
-                        if (File::copy($sPath, $dPath)) {
-                            // Tạo thumbnail
-                            $thumbnailPath = public_path() . '/uploads/category/thumb/' . $newImageName;
-                            $img = Image::make($dPath);
-                            $img->resize(300, 200);
-                            $img->save($thumbnailPath);
-
-                            // Lưu tên ảnh vào cơ sở dữ liệu
-                            $category->image = $newImageName;
-                            $category->save();
-
-                            Session::flash('success', 'Category added successfully!');
-
-                            // Delete Old Image Here
-                            File::delete(public_path() . '/uploads/category/thumb' . $oldImage);
-                            File::delete(public_path() . '/uploads/category/' . $oldImage);
-
-
-                            return response()->json([
-                                'status' => true,
-                                'message' => "Category added successfully"
-                            ]);
-                        }
-                    }
-                }
+    try {
+        
+       $category = new Category();
+        $category->name = $request->name;
+        $category->slug = $request->slug;
+        $category->status = $request->status;
+        $category->showHome = $request->showHome;
+        if ($request->has('image_id') && $request->image_id != '') {
+            $tempImage = TempImage::find($request->image_id);
+            if ($tempImage) {
+                $imageName = $tempImage->name;
+                // Di chuyển file từ temp -> thư mục chính
+                File::move(public_path('uploads/temp/' . $imageName), public_path('uploads/category/' . $imageName));
+                File::copy(public_path('uploads/category/' . $imageName), public_path('uploads/category/thumb/' . $imageName));
+                $category->image = $imageName;
+    
+                // Xoá ảnh tạm (nếu cần)
+                $tempImage->delete();
             }
-
-
-            Session::flash('success', 'Category added successfully!');
-
-            return response()->json([
-                'status' => true,
-                'message' => "Category added successfully"
-            ]);
-        } else {
-            return response()->json([
-                'status' => false,
-                'errors' => $validator->errors()
-            ]);
         }
+        
+       
+        $category->save();
+
+        Session::flash('success', 'Category added successfully!');
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Category added successfully'
+        ]);
+    } catch (\Exception $e) {
+        \Log::error('Category Store Error: ' . $e->getMessage());
+        return response()->json([
+            'status' => false,
+            'message' => 'Something went wrong! ' . $e->getMessage()
+        ], 500);
+    }
     }
 
     public function edit($categoryId, Request $request)
@@ -115,35 +96,48 @@ class CategoryController extends Controller
         return view('admin.category.edit', compact('category'));
     }
 
-    public function update($categoryId, Request $request)
+    public function update(Request $request, $id)
     {
-        $category = Category::find($categoryId);
-        if (empty($category)) {
-            return response()->json([
-                'status' => false,
-                'notFound' => true,
-                'message' => 'Category not found'
-            ]);
+        $category = Category::find($id);
+        if (!$category) {
+            return response()->json(['status' => false, 'notFound' => true]);
         }
 
         $validator = Validator::make($request->all(), [
-            'name' => 'required',
-            'slug' => 'required|unique:categories,slug,' . $category->id . ',id',
-
+            'name' => 'required|string|max:255',
+            'slug' => 'required|string|max:255|unique:categories,slug,' . $id,
+            'status' => 'required|in:0,1',
+            'showHome' => 'required|in:0,1',
         ]);
-        if ($validator->passes()) {
-
-            $category->name = $request->name;
-            $category->slug = $request->slug;
-            $category->showHome = $request->showHome;
-            $category->status = $request->status;
-            $category->save();
-            Session::flash('success', ' Category update successfully!');
+        if ($validator->fails()) {
             return response()->json([
-                'status' => true,
-                'message' => ' Category update successfully'
+                'status' => false,
+                'errors' => $validator->errors()
             ]);
         }
+    
+        // Cập nhật ảnh nếu có image_id mới từ Dropzone
+        if ($request->has('image_id') && $request->image_id != '') {
+            $tempImage = TempImage::find($request->image_id);
+            if ($tempImage) {
+                $imageName = $tempImage->name;
+                // Di chuyển file từ temp -> thư mục chính
+                File::move(public_path('uploads/temp/' . $imageName), public_path('uploads/category/' . $imageName));
+                File::copy(public_path('uploads/category/' . $imageName), public_path('uploads/category/thumb/' . $imageName));
+                $category->image = $imageName;
+    
+                // Xoá ảnh tạm (nếu cần)
+                $tempImage->delete();
+            }
+        }
+    
+        $category->name = $request->name;
+        $category->slug = $request->slug;
+        $category->status = $request->status;
+        $category->showHome = $request->showHome;
+        $category->save();
+    
+        return response()->json(['status' => true]);
     }
     public function destroy($categoryId, Request $request)
     {

@@ -13,39 +13,28 @@ class TempImagesController extends Controller
 {
     public function create(Request $request)
     {
-        dd(123);
-        $image = $request->image;
-        if (!empty($image)) {
-
-            $ext = $image->getClientOriginalExtension();
-            $newName = time() . '.' . $ext;
-
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $extension = $file->getClientOriginalExtension();
+            $name = uniqid() . '.' . $extension;
+    
+            $file->move(public_path('uploads/temp'), $name);
+    
+            // Nếu bạn có bảng temp_images
             $tempImage = new TempImage();
-            $tempImage->name = $newName;
+            $tempImage->name = $name;
             $tempImage->save();
-
-            $image->move(public_path() . '/temp', $newName);
-
-            // return response()->json([
-            //     'status' => true,
-            //     'name' => $newName,
-            //     'id' => $tempImage->id
-            // ]);
-
-            // generate
-            $sourcePath = public_path() . '/temp/' . $newName;
-            $destPath = public_path() . '/temp/thumb/' . $newName;
-
-            $image = Image::make($sourcePath);
-            $image->fit(300, 275);
-            $image->save($destPath);
-
+    
             return response()->json([
                 'status' => true,
                 'image_id' => $tempImage->id,
-                'ImagePath' => asset('/temp/thumb/' . $newName),
-                'message' => 'Image upload successfull'
+                'file_name' => $name
             ]);
         }
+    
+        return response()->json([
+            'status' => false,
+            'message' => 'No image found'
+        ], 400);
     }
 }

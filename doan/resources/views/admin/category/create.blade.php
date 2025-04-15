@@ -163,7 +163,7 @@
         });
 
         Dropzone.autoDiscover = false;
-        const dropzone = new Dropzone('#image', {
+        const dropzone = $('#image').dropzone({
             init: function() {
                 this.on("addedfile", function(file) {
                     if (this.files.length > 1) {
@@ -182,6 +182,7 @@
             success: function(file, response) {
                 $("#image_id").val(response.image_id);
             }
+
         });
     </script>
 @endsection
