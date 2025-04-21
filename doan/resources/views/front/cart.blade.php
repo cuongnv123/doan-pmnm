@@ -5,37 +5,38 @@
         <div class="container">
             <div class="light-font">
                 <ol class="breadcrumb primary-color mb-0">
-                    <li class="breadcrumb-item"><a class="white-text" href="{{ route('front.home') }}">{{ __('HOME') }}</a>
-                    </li>
-                    <li class="breadcrumb-item"><a class="white-text" href="{{ route('front.shop') }}">{{ __('SHOP') }}</a>
-                    </li>
+                    <li class="breadcrumb-item"><a class="white-text" href="{{ route('front.home') }}">{{ __('HOME') }}</a></li>
+                    <li class="breadcrumb-item"><a class="white-text" href="{{ route('front.shop') }}">{{ __('SHOP') }}</a></li>
                     <li class="breadcrumb-item">{{ __('Cart') }}</li>
                 </ol>
             </div>
         </div>
     </section>
 
-    <section class=" section-9 pt-4">
+    <section class="section-9 pt-4">
         <div class="container">
             <div class="row">
-                @if (session()->has('success'))
+
+                {{-- Hiển thị thông báo --}}
+                @if (session('success'))
                     <div class="col-md-12">
                         <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            {{ session()->get('success') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            {{ session('success') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     </div>
                 @endif
 
-                @if (session()->has('error'))
+                @if (session('error'))
                     <div class="col-md-12">
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            {{ session()->get('error') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            {{ session('error') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     </div>
                 @endif
-                @if (count(session()->get('cart', [])) > 0)
+
+                @if (count($cartContent) > 0)
                     <div class="col-md-8">
                         <div class="table-responsive">
                             <table class="table" id="cart">
@@ -49,96 +50,76 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-
+                                    @php $subtotal = 0; @endphp
                                     @foreach ($cartContent as $item)
+                                        @php
+                                            $total = $item['price'] * $item['quantity'];
+                                            $subtotal += $total;
+                                        @endphp
                                         <tr>
                                             <td class="text-start">
                                                 <div class="d-flex align-items-center justify-content-center">
-                                                    @if (!empty($item->options->productImage->image))
-                                                        <img
-                                                            src="{{ asset('uploads/product/small/' . $item->options->productImage->image) }}" />
-                                                    @else
-                                                        <img src="{{ asset('admin-assets/img/default-150x150.png') }}" />
-                                                    @endif
-
-                                                    <h2>{{ $item->name }}</h2>
+                                                    <img src="{{ $item['image'] ? asset('uploads/product/small/' . $item['image']) : asset('admin-assets/img/default-150x150.png') }}" style="width: 50px; height: 50px; object-fit: cover;">
+                                                    <h6 class="ms-2">{{ $item['title'] }}</h6>
                                                 </div>
                                             </td>
-                                            <td>{{ number_format($item->price, 3, '.', '.') }} VND</td>
+                                            <td>{{ number_format($item['price'], 3, '.', '.') }} VND</td>
                                             <td>
                                                 <div class="input-group quantity mx-auto" style="width: 100px;">
-                                                    <div class="input-group-btn">
-                                                        <button class="btn btn-sm btn-dark btn-minus p-2 pt-1 pb-1 sub"
-                                                            data-id ="{{ $item->rowId }}">
-                                                            <i class="fa fa-minus"></i>
-                                                        </button>
-                                                    </div>
-                                                    <input type="text"
-                                                        class="form-control form-control-sm  border-0 text-center"
-                                                        value="{{ $item->qty }}">
-                                                    <div class="input-group-btn">
-                                                        <button class="btn btn-sm btn-dark btn-plus p-2 pt-1 pb-1 add"
-                                                            data-id ="{{ $item->rowId }}">
-                                                            <i class="fa fa-plus"></i>
-                                                        </button>
-                                                    </div>
+                                                    <button class="btn btn-sm btn-dark p-2 pt-1 pb-1 sub" data-id="{{ $item['id'] }}">
+                                                        <i class="fa fa-minus"></i>
+                                                    </button>
+                                                    <input type="text" class="form-control form-control-sm text-center border-0" value="{{ $item['quantity'] }}">
+                                                    <button class="btn btn-sm btn-dark p-2 pt-1 pb-1 add" data-id="{{ $item['id'] }}">
+                                                        <i class="fa fa-plus"></i>
+                                                    </button>
                                                 </div>
                                             </td>
+                                            <td>{{ number_format($total, 3, '.', '.') }} VND</td>
                                             <td>
-                                                {{ number_format($item->price * $item->qty, 3, '.', '.') }}
-                                            </td>
-                                            <td>
-                                                <button class="btn btn-sm btn-danger"
-                                                    onclick="deleteItem('{{ $item->rowId }}');">
+                                                <button class="btn btn-sm btn-danger" onclick="deleteItem('{{ $item['id'] }}')">
                                                     <i class="fa fa-times"></i>
                                                 </button>
-
                                             </td>
                                         </tr>
                                     @endforeach
-
-
                                 </tbody>
                             </table>
                         </div>
                     </div>
+
+                    {{-- Cart Summary --}}
                     <div class="col-md-4">
                         <div class="card cart-summery">
                             <div class="sub-title">
-                                <h2 class="bg-white">{{ __('CART SUMMERY') }}</h3>
+                                <h2 class="bg-white">{{ __('CART SUMMARY') }}</h2>
                             </div>
                             <div class="card-body">
                                 <div class="d-flex justify-content-between pb-2">
                                     <div>{{ __('Subtotal') }}</div>
-                                    <div>{{ number_format((float) Cart::subtotal() * 1000, 3, '.', '.') }} VND
-
-
-                                    </div>
-                                    {{-- <div>{{ number_format((float) Cart::subtotal(), 3, '.', '.') }} VND</div> --}}
-
-
+                                    <div>{{ number_format($subtotal, 3, '.', '.') }} VND</div>
                                 </div>
-
                                 <div class="pt-2">
-                                    <a href="{{ route('front.checkout') }}"
-                                        class="btn-dark btn btn-block w-100">{{ __('Proceed Checkout to COD') }}</a>
+                                    <a href="{{ route('front.checkout') }}" class="btn btn-dark btn-block w-100">
+                                        {{ __('Proceed Checkout to COD') }}
+                                    </a>
                                 </div>
                                 <div class="mt-3">
                                     <form action="{{ route('front.showCheckout') }}" method="GET">
-                                        <button type="submit" class="btn btn-primary check_out w-100" name="redirect">
+                                        <button type="submit" class="btn btn-primary w-100" name="redirect">
                                             {{ __('Proceed Checkout to VnPay') }}
                                         </button>
                                     </form>
                                 </div>
                             </div>
                         </div>
-
                     </div>
                 @else
+                    {{-- Giỏ hàng trống --}}
                     <div class="col-md-12">
                         <div class="card">
-                            <div class="card-body d-flex justify-content-center align-item-center">
-                                <h4> {{ __('Your cart is empty!') }}</h4>
+                            <div class="card-body d-flex justify-content-center align-items-center">
+                                <h4>{{ __('Your cart is empty!') }}</h4>
                             </div>
                         </div>
                     </div>
@@ -147,46 +128,43 @@
         </div>
     </section>
 @endsection
+
 @section('customJs')
     <script>
-        $('.add').click(function() {
-            var qtyElement = $(this).parent().prev(); // Qty Input
-            var qtyValue = parseInt(qtyElement.val());
-            if (qtyValue < 10) {
-                var rowId = $(this).data('id');
-                qtyElement.val(qtyValue + 1);
-                var newQty = qtyElement.val();
-                updateCart(rowId, newQty);
+        $('.add').click(function () {
+            var qtyInput = $(this).siblings('input');
+            var qty = parseInt(qtyInput.val());
+            var id = $(this).data('id');
+
+            if (qty < 10) {
+                qtyInput.val(qty + 1);
+                updateCart(id, qty + 1);
             }
         });
 
-        $('.sub').click(function() {
-            var qtyElement = $(this).parent().next();
-            var qtyValue = parseInt(qtyElement.val());
-            if (qtyValue > 1) {
-                qtyElement.val(qtyValue - 1);
+        $('.sub').click(function () {
+            var qtyInput = $(this).siblings('input');
+            var qty = parseInt(qtyInput.val());
+            var id = $(this).data('id');
 
-                var rowId = $(this).data('id');
-                var newQty = qtyElement.val();
-                updateCart(rowId, newQty);
+            if (qty > 1) {
+                qtyInput.val(qty - 1);
+                updateCart(id, qty - 1);
             }
         });
 
         function updateCart(rowId, qty) {
             $.ajax({
                 url: '{{ route('front.updateCart') }}',
-                type: 'post',
+                type: 'POST',
                 data: {
                     rowId: rowId,
-                    qty: qty
+                    qty: qty,
+                    _token: '{{ csrf_token() }}'
                 },
-                dataType: 'json',
-                success: function(response) {
-
-                    window.location.href = '{{ route('front.cart') }}';
-
+                success: function (res) {
+                    location.reload();
                 }
-
             });
         }
 
@@ -194,21 +172,16 @@
             if (confirm("Are you sure you want to delete?")) {
                 $.ajax({
                     url: '{{ route('front.deleteItem.cart') }}',
-                    type: 'post',
+                    type: 'POST',
                     data: {
                         rowId: rowId,
-
+                        _token: '{{ csrf_token() }}'
                     },
-                    dataType: 'json',
-                    success: function(response) {
-
-                        window.location.href = '{{ route('front.cart') }}';
-
+                    success: function (res) {
+                        location.reload();
                     }
-
                 });
             }
-
         }
     </script>
 @endsection

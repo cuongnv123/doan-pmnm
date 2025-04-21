@@ -15,8 +15,10 @@
 
     <section class="section-9 pt-4">
         <div class="container">
-            <form action="" id="orderForm" name="orderForm" method="post">
+            <form action="{{ route('front.processCheckout') }}" method="POST" id="orderForm">
+                @csrf
                 <div class="row">
+                    {{-- Left: Shipping --}}
                     <div class="col-md-8">
                         <div class="sub-title">
                             <h2>{{ __('Shipping Address') }}</h2>
@@ -24,186 +26,116 @@
                         <div class="card shadow-lg border-0">
                             <div class="card-body checkout-form">
                                 <div class="row">
-
-                                    <div class="col-md-12">
-                                        <div class="mb-3">
-                                            <input type="text" name="first_name" id="first_name" class="form-control"
-                                                placeholder="{{ __('First Name') }}"
-                                                value="{{ !empty($customerAddress) ? $customerAddress->first_name : '' }}">
-
-                                            <p></p>
-                                        </div>
+                                    @php $address = $customerAddress ?? null; @endphp
+                                    <div class="col-md-6 mb-3">
+                                        <input type="text" name="first_name" class="form-control"
+                                               value="{{ old('first_name', $address->first_name ?? '') }}"
+                                               placeholder="{{ __('First Name') }}">
                                     </div>
-                                    <div class="col-md-12">
-                                        <div class="mb-3">
-                                            <input type="text" name="last_name" id="last_name" class="form-control"
-                                                placeholder="{{ __('Last Name') }}"
-                                                value="{{ !empty($customerAddress) ? $customerAddress->last_name : '' }}">
-                                            <p></p>
-                                        </div>
+                                    <div class="col-md-6 mb-3">
+                                        <input type="text" name="last_name" class="form-control"
+                                               value="{{ old('last_name', $address->last_name ?? '') }}"
+                                               placeholder="{{ __('Last Name') }}">
                                     </div>
-
-                                    <div class="col-md-12">
-                                        <div class="mb-3">
-                                            <input type="text" name="email" id="email" class="form-control"
-                                                placeholder="Email"
-                                                value="{{ !empty($customerAddress) ? $customerAddress->email : '' }}">
-                                            <p></p>
-                                        </div>
+                                    <div class="col-md-12 mb-3">
+                                        <input type="email" name="email" class="form-control"
+                                               value="{{ old('email', $address->email ?? '') }}"
+                                               placeholder="Email">
                                     </div>
-
-                                    <div class="col-md-12">
-                                        <div class="mb-3">
-                                            <select name="country" id="country" class="form-control">
-                                                <option value="">{{ __('Select a Country') }}</option>
-                                                @if ($countries->isNotEmpty())
-                                                    @foreach ($countries as $country)
-                                                        <option
-                                                            {{ !empty($customerAddress) && $customerAddress->country_id == $country->id ? 'selected' : '' }}
-                                                            value="{{ $country->id }}"> {{ $country->name }}</option>
-                                                    @endforeach
-                                                @endif
-                                            </select>
-                                            <p></p>
-                                        </div>
+                                    <div class="col-md-12 mb-3">
+                                        <select name="country" class="form-control">
+                                            <option value="">{{ __('Select a Country') }}</option>
+                                            @foreach ($countries as $country)
+                                                <option value="{{ $country->id }}"
+                                                    {{ old('country', $address->country_id ?? '') == $country->id ? 'selected' : '' }}>
+                                                    {{ $country->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
                                     </div>
-
-                                    <div class="col-md-12">
-                                        <div class="mb-3">
-                                            <textarea name="address" id="address" cols="30" rows="3" placeholder="{{ __('Address') }}"
-                                                class="form-control">{{ !empty($customerAddress) ? $customerAddress->address : '' }}</textarea>
-                                            <p></p>
-                                        </div>
+                                    <div class="col-md-12 mb-3">
+                                        <textarea name="address" class="form-control"
+                                                  placeholder="{{ __('Address') }}">{{ old('address', $address->address ?? '') }}</textarea>
                                     </div>
-
-
-
-                                    <div class="col-md-4">
-                                        <div class="mb-3">
-                                            <input type="text" name="city" id="city" class="form-control"
-                                                placeholder="{{ __('City') }}"
-                                                value="{{ !empty($customerAddress) ? $customerAddress->city : '' }}">
-                                            <p></p>
-                                        </div>
+                                    <div class="col-md-6 mb-3">
+                                        <input type="text" name="city" class="form-control"
+                                               value="{{ old('city', $address->city ?? '') }}"
+                                               placeholder="{{ __('City') }}">
                                     </div>
-
-
-
-                                    <div class="col-md-12">
-                                        <div class="mb-3">
-                                            <input type="text" name="mobile" id="mobile" class="form-control"
-                                                placeholder="{{ __('Mobile') }}"
-                                                value="{{ !empty($customerAddress) ? $customerAddress->mobile : '' }}">
-                                            <p></p>
-                                        </div>
+                                    <div class="col-md-6 mb-3">
+                                        <input type="text" name="mobile" class="form-control"
+                                               value="{{ old('mobile', $address->mobile ?? '') }}"
+                                               placeholder="{{ __('Mobile') }}">
                                     </div>
-
-
-                                    <div class="col-md-12">
-                                        <div class="mb-3">
-                                            <textarea name="order_notes" id="order_notes" cols="30" rows="2" placeholder="{{ __('Order Notes') }}"
-                                                class="form-control"></textarea>
-                                            <p></p>
-                                        </div>
+                                    
+                                    <div class="col-md-12 mb-3">
+                                        <textarea name="order_notes" class="form-control"
+                                                  placeholder="{{ __('Order Notes') }}">{{ old('order_notes') }}</textarea>
                                     </div>
-
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    {{-- Right: Order Summary --}}
                     <div class="col-md-4">
                         <div class="sub-title">
                             <h2>{{ __('Order Summary') }}</h2>
                         </div>
-                        <div class="card cart-summery">
+                        <div class="card cart-summary">
                             <div class="card-body">
-                                @foreach (Cart::content() as $item)
+                                @php
+                                    $cart = session('cart', []);
+                                    $subtotal = 0;
+                                @endphp
+                                @forelse($cart as $item)
+                                    @php $subtotal += $item['quantity'] * $item['price']; @endphp
                                     <div class="d-flex justify-content-between pb-2">
-                                        <div class="h6">{{ $item->name }} X {{ $item->qty }}</div>
-                                        <div class="h6">{{ number_format($item->price * $item->qty, 3, '.', '.') }}
-                                            VND</div>
+                                        <div>{{ $item['title'] }} x {{ $item['quantity'] }}</div>
+                                        <div>{{ number_format($item['price'] * $item['quantity'], 3, '.', '.') }} VND</div>
                                     </div>
-                                @endforeach
+                                @empty
+                                    <p>{{ __('Cart is empty') }}</p>
+                                @endforelse
 
-                                <div class="d-flex justify-content-between summery-end">
-                                    <div class="h6"><strong>{{ __('Subtotal') }}</strong></div>
-                                    <div class="h6">
-                                        <strong>{{ number_format((float) Cart::subtotal() * 1000, 3, '.', '.') }}
-                                            VND</strong></div>
-                                </div>
-                                <div class="d-flex justify-content-between summery-end">
-                                    <div class="h6"><strong>{{ __('Discount') }}</strong></div>
-                                    <div class="h6"><strong id="discount_value">{{ $discount }} %</strong></div>
+                                <hr>
+                                <div class="d-flex justify-content-between">
+                                    <strong>{{ __('Subtotal') }}</strong>
+                                    <strong>{{ number_format($subtotal, 3, '.', '.') }} VND</strong>
                                 </div>
                                 <div class="d-flex justify-content-between mt-2">
-                                    <div class="h6"><strong>{{ __('Shipping') }}</strong></div>
-                                    <div class="h6"><strong
-                                            id="shippingAmount">{{ number_format($totalShippingCharge, 3) }} VND</strong>
-                                    </div>
+                                    <strong>{{ __('Discount') }}</strong>
+                                    <strong>{{ $discount }} VND</strong>
                                 </div>
-                                <div class="d-flex justify-content-between mt-2 summery-end">
-                                    <div class="h5"><strong>{{ __('Total') }}</strong></div>
-                                    <div class="h5"><strong
-                                            id="grandTotal">{{ number_format($grandTotal, 3, '.', '.') }}
-                                            VND</strong></div>
+                                <div class="d-flex justify-content-between mt-2">
+                                    <strong>{{ __('Shipping') }}</strong>
+                                    <strong>{{ number_format($totalShippingCharge, 3) }} VND</strong>
+                                </div>
+                                <div class="d-flex justify-content-between mt-3">
+                                    <strong>{{ __('Total') }}</strong>
+                                    <strong>{{ number_format($grandTotal, 3, '.', '.') }} VND</strong>
                                 </div>
                             </div>
                         </div>
-                        <div class="input-group apply-coupan mt-4">
-                            <input type="text" placeholder="{{ __('Coupon Code') }}" class="form-control"
-                                name="discount_code" id="discount_code">
-                            <button class="btn btn-dark" type="button"
-                                id="apply_discount">{{ __('Apply Coupon') }}</button>
-                        </div>
-                        <div id="discount-response-wrapper">
-                            @if (Session::has('code'))
-                                <div class=" mt-4" id="discount-response">
-                                    <strong>{{ Session::get('code')->code }}</strong>
-                                    <a class="btn btn-sm btn-danger" id="remove-discount"><i class="fa fa-times"></i></a>
+
+                        <div class="card mt-4">
+                            <div class="card-body">
+                                <h5>{{ __('Payment Method') }}</h5>
+                                <div class="form-check">
+                                    <input type="radio" id="cod" name="payment_method" value="cod" checked class="form-check-input">
+                                    <label for="cod" class="form-check-label">COD</label>
                                 </div>
-                            @endif
-                        </div>
-
-
-                        <div class="card payment-form">
-                            <h3 class="card-title h5 mb-3">{{ __('Payment Method') }}</h3>
-
-                            <div>
-                                <input checked type="radio" name="payment_method" value="cod"
-                                    id="payment_method_one">
-                                <label for="payment_method_one" class="form-check-label">COD</label>
-                            </div>
-                            {{-- <div>
-                                <input checked type="radio" name="payment_method" value="vnpay"
-                                    id="payment_method_two">
-                                <label for="payment_method_one" class="form-check-label">VN-Pay</label>
-                            </div> --}}
-
-
-
-                            <div class="pt-4">
-                                {{-- <a href="#" class="btn-dark btn btn-block w-100">Pay Now</a> --}}
-                                <button type="submit" class="btn-dark btn btn-block w-100">{{ __('Pay Now') }}</button>
                             </div>
                         </div>
 
-
-
-
-
-
-
-
-
-
-
+                        <button type="submit" class="btn btn-dark btn-block mt-3">{{ __('Pay Now') }}</button>
                     </div>
                 </div>
             </form>
-
         </div>
     </section>
 @endsection
+
 
 @section('customJs')
     <script>

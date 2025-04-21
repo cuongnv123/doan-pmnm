@@ -14,29 +14,37 @@ use Gloudemans\Shoppingcart\Facades\Cart;
 class CheckoutController extends Controller
 {
     public function show()
-    {
-        //if cart is empty
-        if (Cart::count() == 0) {
-            return redirect()->route('front.cart');
-        }
-        //if user is not logged in in the redirect to login page
+{
+    // Lấy giỏ hàng từ session
+    $cart = session('cart', []);
 
-
-        if (Auth::check() == false) {
-
-            if (!session()->has('url.intended')) {
-                session(['url.intended' => url()->current()]);
-            }
-            return redirect()->route('account.login');
-        }
-        $customerAddress = CustomerAddress::where('user_id', Auth::user()->id)->first();
-        session()->forget('url.intended');
-        $countries = Country::orderBy('name', 'ASC')->get();
-        return view('front.checkoutVnpay', [
-            'customerAddress' => $customerAddress,
-            'countries' => $countries,
-        ]);
+    // Nếu giỏ hàng trống
+    if (empty($cart)) {
+        return redirect()->route('front.cart');
     }
+
+    // Nếu chưa đăng nhập thì chuyển đến trang đăng nhập
+    if (!Auth::check()) {
+        if (!session()->has('url.intended')) {
+            session(['url.intended' => url()->current()]);
+        }
+        return redirect()->route('account.login');
+    }
+
+    // Lấy địa chỉ người dùng nếu đã có
+    $customerAddress = CustomerAddress::where('user_id', Auth::user()->id)->first();
+
+    // Quên đường dẫn dự định sau khi login
+    session()->forget('url.intended');
+
+    // Lấy danh sách quốc gia
+    $countries = Country::orderBy('name', 'ASC')->get();
+
+    return view('front.checkoutVnpay', [
+        'customerAddress' => $customerAddress,
+        'countries' => $countries,
+    ]);
+}
 
     public function checkoutVnpay(Request $request)
     {
@@ -55,9 +63,16 @@ class CheckoutController extends Controller
                 'mobile' => $request->mobile,
                 'address' => $request->address,
                 'city' => $request->city,
+                'country_id' => $request->country,
+                'state' => 'Đang mở khóa',
+                'zip' => 'không có'
             ]
         );
 
+        $cart = session('cart', []);
+        if (empty($cart)) {
+            return response()->json(['message' => 'Cart is empty!'], 400);
+        }
         if ($request->payment_method == 'vnpay') {
             $order = new Order();
             $order->payment_status = 'not paid';
@@ -74,37 +89,39 @@ class CheckoutController extends Controller
 
             // Calculate subtotal
             $subtotal = 0;
-            foreach (Cart::content() as $item) {
-                $subtotal += $item->price * $item->qty;
+            foreach ($cart as $item) {
+                $subtotal += $item['price'] * $item['quantity'];
             }
+            $order->state = 'chờ duyệt';
+            $order->zip = 'không có';
             $order->subtotal = $subtotal; // Assign subtotal to order
             $order->grand_total = $subtotal + $order->shipping;
             $order->country_id = $request->country ?? 1;
             $order->save();
         }
 
-        foreach (Cart::content() as $item) {
+        foreach ($cart as $item) {
             $orderItem = new OrderItem();
-            $orderItem->product_id = $item->id;
+            $orderItem->product_id = $item['id'];
             $orderItem->order_id = $order->id;
-            $orderItem->name = $item->name;
-            $orderItem->qty = $item->qty;
-            $orderItem->price = $item->price;
-            $orderItem->total = $item->price * $item->qty;
+            $orderItem->name = $item['title'];
+            $orderItem->qty = $item['quantity'];
+            $orderItem->price = $item['price'];
+            $orderItem->total = $item['price'] * $item['quantity'];
             $orderItem->save();
-            // Update product stock
-            $productData = Product::find($item->id);
-            if ($productData->track_qty == 'Yes') {
-                $currentQty = $productData->qty;
-                $updatedQty = $currentQty - $item->qty;
-                $productData->qty = $updatedQty;
-                $productData->save();
+
+            // Cập nhật kho
+            $product = Product::find($item['id']);
+            if ($product && $product->track_qty == 'Yes') {
+                $product->qty = max(0, $product->qty - $item['quantity']);
+                $product->save();
             }
+        
         }
-        Cart::destroy();
+        session()->forget('cart');
 
         // VNPAY payment setup
-        $code_cart = rand(00, 9999);
+        $code_cart = rand(1000, 9999);
         $vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
         $vnp_Returnurl = "http://localhost:8000/thanksVnpay";
         $vnp_TmnCode = "D5S2SJJ4";
@@ -113,7 +130,7 @@ class CheckoutController extends Controller
         $vnp_TxnRef = $code_cart;
         $vnp_OrderInfo = 'Thanh toan don hang';
         $vnp_OrderType = 'billpayment';
-        $vnp_Amount = (float) $subtotal * 100000;
+        $vnp_Amount = (float) $subtotal * 100;
         $vnp_Locale = 'vn';
         $vnp_BankCode = 'NCB';
         $vnp_IpAddr = $_SERVER['REMOTE_ADDR'];

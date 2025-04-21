@@ -3,9 +3,9 @@
 @section('content')
     <section class="container">
         <div class="col-md-12 text-center py-5">
-            @if (Session::has('success'))
+            @if (session()->has('success'))
                 <div class="alert alert-success">
-                    {{ Session::get('success') }}
+                    {{ session()->get('success') }}
                 </div>
             @endif
 

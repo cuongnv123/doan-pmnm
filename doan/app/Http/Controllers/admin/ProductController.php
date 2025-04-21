@@ -82,43 +82,19 @@ class ProductController extends Controller
 
             $product->save();
 
-            // Save Gallery Pics
-            if (is_array($request->image_array)) {
-                foreach ($request->image_array as $temp_image_id) {
-                    $tempImageInfo = TempImage::find($temp_image_id);
-                    if ($tempImageInfo) {
-                        $extArray = explode('.', $tempImageInfo->name);
-                        $ext = last($extArray);
-
-                        $productImage = new ProductImage();
-                        $productImage->product_id = $product->id;
-                        $productImage->image = 'NULL';
-                        $productImage->save();
-
-                        $imageName = $product->id . '-' . $productImage->id . '-' . time() . '.' . $ext;
-                        $productImage->image = $imageName;
-                        $productImage->save();
-
-                        // Large Image
-                        $sourcePath = public_path() . '/temp/' . $tempImageInfo->name;
-                        $destLargePath = public_path() . '/uploads/product/large/' . $imageName;
-                        $image = Image::make($sourcePath);
-                        $image->resize(1400, null, function ($constraint) {
-                            $constraint->aspectRatio();
-                        });
-                        $image->save($destLargePath);
-
-                        // Small Image
-                        $destSmallPath = public_path() . '/uploads/product/small/' . $imageName;
-                        $image = Image::make($sourcePath);
-                        $image->resize(300, 300);
-                        $image->save($destSmallPath);
-                    }
+            if ($request->has('image_id') && $request->image_id != '') {
+                $tempImage = TempImage::find($request->image_id);
+                if ($tempImage) {
+                    $imageName = $tempImage->name;
+                    // Di chuyển file từ temp -> thư mục chính
+                    File::move(public_path('uploads/temp/' . $imageName), public_path('uploads/category/' . $imageName));
+                    File::copy(public_path('uploads/category/' . $imageName), public_path('uploads/category/thumb/' . $imageName));
+                    $product->image = $imageName;
+        
+                    // Xoá ảnh tạm (nếu cần)
+                    $tempImage->delete();
                 }
             }
-
-
-
 
             Session::flash('success', 'Products added successfully!');
 

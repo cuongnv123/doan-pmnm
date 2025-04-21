@@ -54,6 +54,7 @@ class CategoryController extends Controller
         $category->slug = $request->slug;
         $category->status = $request->status;
         $category->showHome = $request->showHome;
+        
         if ($request->has('image_id') && $request->image_id != '') {
             $tempImage = TempImage::find($request->image_id);
             if ($tempImage) {

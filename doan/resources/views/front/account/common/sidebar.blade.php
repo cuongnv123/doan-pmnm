@@ -18,7 +18,7 @@
         </a>
     </li>
     <li class="nav-item">
-        <form action="{{ route('account.logout') }}" method="POST" style="display: inline;">
+        <form action="{{ route('account.logout') }}" method="GET" style="display: inline;">
             @csrf
             <button type="submit" class="nav-link font-weight-bold" style="background: none; border: none; color: inherit; padding: 0;">
                 <i class="fas fa-sign-out-alt"></i>{{ __('Logout') }}

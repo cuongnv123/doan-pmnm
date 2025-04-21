@@ -19,9 +19,17 @@
                 @csrf
                 {{-- <input type="hidden" name="total_vnpay"
                     value="{{ number_format((float) Cart::subtotal() * 1000, 3, '.', '.') }}"> --}}
-                <input type="hidden" name="total_vnpay"
-                    value="{{ is_numeric(Cart::subtotal()) ? number_format((float) Cart::subtotal() * 1000, 3, '.', '.') : '0.000' }}">
+                    @php
+                        $cart = session('cart', []);
+                        $subtotal = 0;
 
+                        foreach ($cart as $item) {
+                            $subtotal += $item['quantity'] * $item['price'];
+                        }
+
+                        $total_vnpay = number_format((float) $subtotal * 1000, 3, '.', '.');
+                    @endphp
+                 <input type="hidden" name="total_vnpay" value="{{ $total_vnpay }}">
                 <div class="row">
                     <div class="col-md-12">
                         <div class="sub-title mb-4">

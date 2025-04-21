@@ -93,7 +93,7 @@
                                             class="form-control">
                                         <p></p>
                                     </div>
-                                    <div class="col-mb-6 mb-3">
+                                    {{-- <div class="col-mb-6 mb-3">
                                         <label for="name">{{ __('Country') }}</label>
                                         <select name="country_id" id="country_id" class="form-control">
                                             <option value="">{{ __('Select a Country') }}</option>
@@ -106,7 +106,7 @@
                                             @endif
                                         </select>
                                         <p></p>
-                                    </div>
+                                    </div> --}}
                                     <div class="col-mb-6 mb-3">
                                         <label for="phone">{{ __('Address') }}</label>
                                         <textarea name="address" id="adddress" cols="30" rows="5" class="form-control">
@@ -239,13 +239,7 @@
                             $("#apartment").removeClass('is-invalid').removeClass('invalid-feedback')
                                 .siblings('p').html('');
                         }
-                        if (errors.country_id) {
-                            $("#country_id").addClass('is-invalid')
-                                .siblings('p').addClass('invalid-feedback').html(errors.country_id);
-                        } else {
-                            $("#country_id").removeClass('is-invalid').removeClass('invalid-feedback')
-                                .siblings('p').html('');
-                        }
+                        
                         if (errors.address) {
                             $("#address").addClass('is-invalid')
                                 .siblings('p').addClass('invalid-feedback').html(errors.address);

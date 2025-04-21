@@ -1,13 +1,15 @@
 @extends('admin.layouts.app')
 @section('content')
+
+
     <section class="content-header">
         <div class="container-fluid my-2">
             <div class="row mb-2">
                 <div class="col-sm-6">
-                    <h1>Categories</h1>
+                    <h1>Products</h1>
                 </div>
                 <div class="col-sm-6 text-right">
-                    <a href="{{ route('categories.create') }}" class="btn btn-primary">New Category</a>
+                    <a href="{{ route('products.create') }}" class="btn btn-primary">New Product</a>
                 </div>
             </div>
         </div>
@@ -16,7 +18,6 @@
     <!-- Main content -->
     <section class="content">
         <!-- Default box -->
-
         <div class="container-fluid">
             @include('admin.message')
             <div class="card">
@@ -24,7 +25,7 @@
                     <div class="card-header">
                         <div class="card-title">
 
-                            <button type="button" onclick="window.location.href='{{ route('categories.index') }}'"
+                            <button type="button" onclick="window.location.href='{{ route('products.index') }}'"
                                 class="btn btn-default btn-sm">Reset</button>
 
                         </div>
@@ -48,31 +49,51 @@
                         <thead>
                             <tr>
                                 <th width="60">ID</th>
-                                <th>Name</th>
-                                <th>Image</th>
-                                <th>Slug</th>
+                                <th width="80"></th>
+                                <th>Product</th>
+                                <th>Color</th>
+                                <th>Size</th>
+                                <th>Price</th>
+                                <th>Qty</th>
+                                <th>SKU</th>
                                 <th width="100">Status</th>
                                 <th width="100">Action</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @if ($categories->isNotEmpty())
-                                @foreach ($categories as $category)
+                            @if ($products->isNotEmpty())
+                                @foreach ($products as $product)
+                                    @php
+                                        $productImage = $product->product_images->first();
+                                    @endphp
                                     <tr>
-                                        <td>{{ $category->id }}</td>
-                                        <td>{{ $category->name }}</td>
+                                        <td>{{ $product->id }}</td>
                                         <td>
-                                            @if ($category->image)
-                                                <img src="{{ asset('uploads/category/' . $category->image) }}" alt="Image"
-                                                    class="img-fluid" style="width: 50px; height: 50px;">
+                                            @if (!empty($productImage->image))
+                                                <img src="{{ asset('uploads/product/small/' . $productImage->image) }}"
+                                                    class="img-thumbnail" width="50">
                                             @else
-                                                <img src="{{ asset('images/no-image.png') }}" alt="Image"
-                                                    class="img-fluid" style="width: 50px; height: 50px;">
+                                                <img src="{{ asset('admin-assets/img/default-150x150.png') }}"
+                                                    class="img-thumbnail" width="50">
                                             @endif
+
                                         </td>
-                                        <td>{{ $category->slug }}</td>
+                                        <td><a href="#">{{ $product->title }}</a></td>
                                         <td>
-                                            @if ($category->status == 1)
+                                            @foreach ($product->colors as $color)
+                                                {{ $color->name }}
+                                            @endforeach
+                                        </td>
+                                        <td>
+                                            @foreach ($product->sizes as $size)
+                                                {{ $size->name }}
+                                            @endforeach
+                                        </td>
+                                        <td>{{ number_format($product->price, 3, '.', '.') }} VND</td>
+                                        <td>{{ $product->qty }}</td>
+                                        <td>{{ $product->sku }}</td>
+                                        <td>
+                                            @if ($product->status == 1)
                                                 <svg class="text-success-500 h-6 w-6 text-success"
                                                     xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                                                     stroke-width="2" stroke="currentColor" aria-hidden="true">
@@ -88,9 +109,10 @@
                                                     </path>
                                                 </svg>
                                             @endif
+
                                         </td>
                                         <td>
-                                            <a href="{{ route('categories.edit', $category->id) }}">
+                                            <a href="{{ route('products.edit', $product->id) }}">
                                                 <svg class="filament-link-icon w-4 h-4 mr-1"
                                                     xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
                                                     fill="currentColor" aria-hidden="true">
@@ -99,7 +121,7 @@
                                                     </path>
                                                 </svg>
                                             </a>
-                                            <a href="#" onclick="deleteCategory({{ $category->id }})"
+                                            <a href="#" onclick="deleteProduct({{ $product->id }})"
                                                 class="text-danger w-4 h-4 mr-1">
                                                 <svg wire:loading.remove.delay="" wire:target=""
                                                     class="filament-link-icon w-4 h-4 mr-1"
@@ -115,43 +137,43 @@
                                 @endforeach
                             @else
                                 <tr>
-                                    <td colspan="5">Records not found</td>
+                                    <td>Record not found</td>
                                 </tr>
                             @endif
-
 
                         </tbody>
                     </table>
                 </div>
                 <div class="card-footer clearfix">
-                    {{ $categories->links() }}
+                    {{ $products->links() }}
                 </div>
             </div>
         </div>
         <!-- /.card -->
     </section>
+
+
 @endsection
 
 @section('customJs')
     <script>
-        function deleteCategory(id) {
-            var url = '{{ route('categories.delete', 'ID') }}';
-            var newUrl = url.replace("ID", id);
+        function deleteProduct(id) {
+
+            var url = '{{ route('products.delete', 'ID') }}';
+            var newUrl = url.replace("ID", id)
             if (confirm("Are you sure you want to delete")) {
                 $.ajax({
                     url: newUrl,
                     type: 'delete',
                     data: {},
                     dataType: 'json',
-                    headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                    },
                     success: function(response) {
 
-                        if (response["status"]) {
-                            window.location.href = "{{ route('categories.index') }}";
+                        if (response["status"] == true) {
+                            window.location.href = "{{ route('products.index') }}";
 
                         } else {
+                            window.location.href = "{{ route('products.index') }}";
 
                         }
                     }

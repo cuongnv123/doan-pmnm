@@ -19,160 +19,255 @@ use Illuminate\Support\Facades\Validator;
 
 class CartController extends Controller
 {
+    // Thêm sản phẩm vào giỏ hàng
     public function addToCart(Request $request)
-    {
+{
+    if (!auth()->check()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Bạn cần đăng nhập để thêm vào giỏ hàng'
+        ]);
+    }
 
-        $product = Product::with('product_images')->find($request->id);
-        if ($product == null) {
+    $product = Product::with('product_images')->find($request->id);
+    if (!$product) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Product not found'
+        ]);
+    }
+
+    $cart = session()->get('cart', []);
+
+    if (isset($cart[$product->id])) {
+        return response()->json([
+            'status' => false,
+            'message' => $product->title . ' is already in the cart'
+        ]);
+    }
+
+    $cart[$product->id] = [
+        'id' => $product->id,
+        'title' => $product->title,
+        'quantity' => 1,
+        'price' => $product->price,
+        'image' => optional($product->product_images->first())->image
+    ];
+
+    session()->put('cart', $cart);
+
+    return response()->json([
+        'status' => true,
+        'message' => $product->title . ' has been added to the cart'
+    ]);
+}
+
+public function cart()
+{
+    if (!auth()->check()) {
+        return redirect()->route('account.login')->with('error', 'Bạn cần đăng nhập để xem giỏ hàng');
+    }
+
+    $cartContent = session()->get('cart', []);
+    return view('front.cart', compact('cartContent'));
+}
+
+public function updateCart(Request $request)
+{
+    if (!auth()->check()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Bạn cần đăng nhập để cập nhật giỏ hàng'
+        ]);
+    }
+
+    $productId = $request->rowId;
+    $qty = (int)$request->qty;
+
+    $cart = session()->get('cart', []);
+
+    if (!isset($cart[$productId])) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Item not found in cart'
+        ]);
+    }
+
+    $product = Product::find($productId);
+    if (!$product) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Product not found'
+        ]);
+    }
+
+    if ($product->track_qty === 'Yes' && $qty > $product->qty) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Requested quantity exceeds available stock'
+        ]);
+    }
+
+    $cart[$productId]['quantity'] = $qty;
+    session()->put('cart', $cart);
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Cart updated successfully'
+    ]);
+}
+
+public function deleteItem(Request $request)
+{
+    if (!auth()->check()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Bạn cần đăng nhập để xoá sản phẩm khỏi giỏ hàng'
+        ]);
+    }
+
+    $productId = $request->rowId;
+    $cart = session()->get('cart', []);
+
+    if (!isset($cart[$productId])) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Item not found in cart'
+        ]);
+    }
+
+    unset($cart[$productId]);
+    session()->put('cart', $cart);
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Item removed from cart successfully'
+    ]);
+}
+
+
+public function checkout()
+{
+    $discount = 0;
+    $cart = session()->get('cart', []);
+
+    // Nếu giỏ hàng rỗng thì quay lại trang giỏ hàng
+    if (empty($cart)) {
+        return redirect()->route('front.cart')->with('error', 'Your cart is empty.');
+    }
+
+    // Kiểm tra đăng nhập
+    if (!Auth::check()) {
+        session(['url.intended' => url()->current()]);
+        return redirect()->route('account.login');
+    }
+
+    $user = Auth::user();
+    $customerAddress = CustomerAddress::where('user_id', $user->id)->first();
+    session()->forget('url.intended');
+    $countries = Country::orderBy('name', 'ASC')->get();
+
+    // Tính tổng tiền
+    $subTotal = 0;
+    $totalQty = 0;
+    foreach ($cart as $item) {
+        $subTotal += $item['price'] * $item['quantity'];
+        $totalQty += $item['quantity'];
+    }
+
+    // Áp dụng mã giảm giá nếu có
+    if (session()->has('code')) {
+        $code = session()->get('code');
+        if ($code->type == 'percent') {
+            $discount = ($code->discount_amount / 100) * $subTotal;
+        } else {
+            $discount = $code->discount_amount;
+        }
+    }
+
+    // Tính phí vận chuyển
+    $totalShippingCharge = 0;
+    if ($customerAddress) {
+        $shippingInfo = ShippingCharge::where('country_id', $customerAddress->country_id)->first();
+        if ($shippingInfo) {
+            $totalShippingCharge = $totalQty * $shippingInfo->amount;
+        }
+    }
+
+    $grandTotal = ($subTotal - $discount) + $totalShippingCharge;
+
+    return view('front.checkout', [
+        'countries' => $countries,
+        'customerAddress' => $customerAddress,
+        'totalShippingCharge' => $totalShippingCharge,
+        'discount' => $discount,
+        'grandTotal' => $grandTotal,
+        'subTotal' => $subTotal
+    ]);
+}
+public function processCheckout(Request $request)
+{
+    // 1. Validation
+    $validator = Validator::make($request->all(), [
+        'first_name' => 'required|min:5',
+        'last_name' => 'required',
+        'email' => 'required|email',
+        'address' => 'required|min:5',
+        'city' => 'required',
+        'country' => 'required',
+        'mobile' => 'required',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => false,
+            'message' => "Please fix the error",
+            'errors' => $validator->errors()
+        ]);
+    }
+
+    $user = Auth::user();
+
+    // 2. Lưu địa chỉ
+    CustomerAddress::updateOrCreate(
+        ['user_id' => $user->id],
+        [
+            'user_id' => $user->id,
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
+            'email' => $request->email,
+            'mobile' => $request->mobile,
+            'country_id' => $request->country,
+            'address' => $request->address,
+            'city' => $request->city,
+            'state' => 'Đang mở khóa',
+            'zip' => 'không có'
+        
+        ]
+    );
+
+    // 3. Xử lý thanh toán COD
+    if ($request->payment_method === 'cod') {
+        $cart = session('cart', []);
+
+        if (empty($cart)) {
             return response()->json([
                 'status' => false,
-                'message' => 'Product not found'
+                'message' => 'Cart is empty',
             ]);
         }
 
-        if (Cart::count() > 0) {
-
-            // Products found in cart
-            // Check if this product already in ther cart
-            // Return as message that products already added in your cart
-            // If product not found in the cart, then add product in cart
-            $cartContent = Cart::content();
-            $productAlreadyExist = false;
-            foreach ($cartContent as $item) {
-                if ($item->id == $product->id) {
-                    $productAlreadyExist = true;
-                }
-            }
-            if ($productAlreadyExist == false) {
-                Cart::add(
-                    $product->id,
-                    $product->title,
-                    1,
-                    $product->price,
-                    ['productImage' => (!empty($product->product_images)) ? $product->product_images->first() : '']
-                );
-                $status = true;
-                $message = $product->title . ' added in cart';
-                Session::flash('success', $message);
-            } else {
-                return response()->json([
-                    'status' => false,
-                    'message' => $product->title . ' already in cart'
-                ]);
-                Session::flash('error', $product->title . ' already in cart');
-            }
-        } else {
-            // Cart empty
-            Cart::add($product->id, $product->title, 1, $product->price, ['productImage' => (!empty($product->product_images)) ? $product->product_images->first() : '']);
-            $status = true;
-            $message = $product->title . ' added in cart successfully';
-            Session::flash('success', $message);
-        }
-        return response()->json([
-            'status' => $status,
-            'message' =>  $message
-        ]);
-    }
-
-
-
-    public function cart()
-    {
-        // Lấy giỏ hàng từ session
-        $cartContent = session()->get('cart', []);
-    
-        // Truyền giỏ hàng vào view
-        $data['cartContent'] = $cartContent;
-    
-        // Trả về view với giỏ hàng
-        return view('front.cart', $data);
-    }
-    
-    public function updateCart(Request $request)
-    {
-        $rowId = $request->rowId;
-        $qty = $request->qty;
-
-        $itemInfo = Cart::get($rowId);
-        $product = Product::find($itemInfo->id);
-        // Check qty avaiable in stock
-        if ($product->track_qty == 'Yes') {
-            if ($qty <= $product->qty) {
-                Cart::update($rowId, $qty);
-                $message = 'Cart updated successfully';
-                $status = true;
-                Session::flash('success', $message);
-            } else {
-                $message = 'Request qty(' . $qty . ') not avaiable ';
-                $status = false;
-                Session::flash('error', $message);
-            }
-        } else {
-            Cart::update($rowId, $qty);
-            $message = 'Cart updated successfully';
-            $status = true;
-            Session::flash('success', $message);
+        $subTotal = 0;
+        $totalQty = 0;
+        foreach ($cart as $item) {
+            $subTotal += $item['price'] * $item['quantity'];
+            $totalQty += $item['quantity'];
         }
 
-
-
-        return response()->json([
-            'status' => $status,
-            'message' => $message
-        ]);
-    }
-
-    public function deleteItem(Request $request)
-    {
-
-        $itemInfo = Cart::get($request->rowId);
-
-
-        if ($itemInfo == null) {
-            $errorMessage = 'Item not found in cart';
-            Session::flash('error', $errorMessage);
-            return response()->json([
-                'status' => false,
-                'message' =>  $errorMessage
-
-            ]);
-        }
-        Cart::remove($request->rowId);
-
-        $message = 'Item removed from cart successfully';
-        Session::flash('success', $message);
-        return response()->json([
-            'status' => true,
-            'message' =>  $message
-
-        ]);
-    }
-
-    public function checkout()
-    {
+        // Tính mã giảm giá
         $discount = 0;
-        //if cart is empty
-        if (Cart::count() == 0) {
-            return redirect()->route('front.cart');
-        }
-        //if user is not logged in in the redirect to login page
-
-
-        if (Auth::check() == false) {
-
-            if (!session()->has('url.intended')) {
-                session(['url.intended' => url()->current()]);
-            }
-            return redirect()->route('account.login');
-        }
-
-        $customerAddress = CustomerAddress::where('user_id', Auth::user()->id)->first();
-        session()->forget('url.intended');
-        $countries = Country::orderBy('name', 'ASC')->get();
-
-
-        $subTotal = Cart::subtotal(3, '.', '');
-        //Apply Discount Here
+        $discountCodeId = null;
+        $promoCode = '';
         if (session()->has('code')) {
             $code = session()->get('code');
             if ($code->type == 'percent') {
@@ -180,177 +275,78 @@ class CartController extends Controller
             } else {
                 $discount = $code->discount_amount;
             }
+            $discountCodeId = $code->id;
+            $promoCode = $code->code;
         }
 
-        // Calculate shipping here
-        if ($customerAddress != '') {
-            $userCountry = $customerAddress->country_id;
-            $shippingInfo = ShippingCharge::where('country_id', $userCountry)->first();
+        // Tính phí vận chuyển
+        $shippingInfo = ShippingCharge::where('country_id', $request->country)->first();
+        if (!$shippingInfo) {
+            $shippingInfo = ShippingCharge::where('country_id', 'rest_of_world')->first();
+        }
+        $shipping = $shippingInfo ? $shippingInfo->amount * $totalQty : 0;
 
-            if ($shippingInfo != null) {
-                $totalQty = 0;
+        $grandTotal = ($subTotal - $discount) + $shipping;
 
-                foreach (Cart::content() as $item) {
-                    $totalQty += $item->qty;
-                }
+        // 4. Lưu đơn hàng
+        $order = new Order();
+        $order->subtotal = $subTotal;
+        $order->shipping = $shipping;
+        $order->grand_total = $grandTotal;
+        $order->discount = $discount;
+        $order->coupon_code_id = $discountCodeId;
+        $order->coupon_code = $promoCode;
+        $order->payment_status = 'not paid';
+        $order->status = 'pending';
+        $order->user_id = $user->id;
+        $order->first_name = $request->first_name;
+        $order->last_name = $request->last_name;
+        $order->email = $request->email;
+        $order->mobile = $request->mobile;
+        $order->country_id = $request->country;
+        $order->address = $request->address;
+        $order->state = 'chờ duyệt';
+        $order->zip = 'không có';
+        $order->city = $request->city;
+        $order->notes = $request->order_notes;
+        $order->save();
 
-                $totalShippingCharge = $totalQty * $shippingInfo->amount;
-                $grandTotal = ($subTotal - $discount) + $totalShippingCharge;
-            } else {
-                $totalShippingCharge = 0;
-                $grandTotal = Cart::subtotal(3, '.', '');
+        // 5. Lưu từng item trong đơn hàng
+        foreach ($cart as $item) {
+            $orderItem = new OrderItem();
+            $orderItem->product_id = $item['id'];
+            $orderItem->order_id = $order->id;
+            $orderItem->name = $item['title'];
+            $orderItem->qty = $item['quantity'];
+            $orderItem->price = $item['price'];
+            $orderItem->total = $item['price'] * $item['quantity'];
+            $orderItem->save();
+
+            // Cập nhật số lượng tồn kho
+            $productData = Product::find($item['id']);
+            if ($productData && $productData->track_qty == 'Yes') {
+                $productData->qty -= $item['quantity'];
+                $productData->save();
             }
-        } else {
-            $grandTotal = ($subTotal - $discount);
-            $totalShippingCharge = 0;
         }
 
-        return view('front.checkout', [
-            'countries' => $countries,
-            'customerAddress' => $customerAddress,
-            'totalShippingCharge' => $totalShippingCharge,
-            'discount' => $discount,
-            'grandTotal' => $grandTotal
+        // Gửi email đơn hàng nếu cần
+        // orderEmail($order->id, 'customer');
+
+        Session::flash('success', 'You have placed your order successfully.');
+
+        // Xóa giỏ hàng & mã giảm giá
+        session()->forget('cart');
+        session()->forget('code');
+
+        return response()->json([
+            'status' => true,
+            'message' => "Order saved successfully",
+            'orderId' => $order->id,
         ]);
     }
-    public function processCheckout(Request $request)
-    {
-        // Apply  validation
-        $validator = Validator::make($request->all(), [
-            'first_name' => 'required|min:5',
-            'last_name' => 'required',
-            'email' => 'required|email',
-            'address' => 'required|min:5',
-            'city' => 'required',
-            'country' => 'required',
-            'mobile' => 'required',
-        ]);
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => false,
-                'message' => "Please fix the error",
-                'errors' => $validator->errors()
-            ]);
-        }
+}
 
-        // step 2 Save user address
-
-        //$customerAddress =  CustomerAddress::find();
-
-        $user = Auth::user();
-        CustomerAddress::updateOrCreate(
-            [
-                'user_id' => $user->id,
-            ],
-            [
-                'user_id' => $user->id,
-                'first_name' => $request->first_name,
-                'last_name' => $request->last_name,
-                'email' => $request->email,
-                'mobile' => $request->mobile,
-                'country_id' => $request->country,
-                'address' => $request->address,
-                'city' => $request->city
-            ]
-        );
-        // step 3: store data in orders table
-        if ($request->payment_method == 'cod') {
-
-            $discountCodeId = NULL;
-            $promoCode = '';
-            // Calculate shipping
-            $shipping = 0;
-            $discount = 0;
-            $subTotal = Cart::subtotal(3, '.', '');
-            $grandTotal = $subTotal +  $shipping;
-
-            // Apply discount here
-            if (session()->has('code')) {
-                $code = session()->get('code');
-                if ($code->type == 'percent') {
-                    $discount = ($code->discount_amount / 100) * $subTotal;
-                } else {
-                    $discount = $code->discount_amount;
-                }
-                $discountCodeId = $code->id;
-                $promoCode = $code->code;
-            }
-
-            $shippingInfo =  ShippingCharge::where('country_id', $request->country)->first();
-            $totalQty = 0;
-
-            foreach (Cart::content() as $item) {
-                $totalQty += $item->qty;
-            }
-
-            if ($shippingInfo != null) {
-                $shipping = $totalQty * $shippingInfo->amount;
-                $grandTotal =  ($subTotal - $discount) + $shipping;
-            } else {
-
-                $shippingInfo = ShippingCharge::where('country_id', 'rest_of_world')->first();
-
-                $shipping = $totalQty * $shippingInfo->amount;
-                $grandTotal = ($subTotal - $discount) + $shipping;
-            }
-
-
-            $order = new Order();
-            $order->subtotal = $subTotal;
-            $order->shipping = $shipping;
-            $order->grand_total = $grandTotal;
-            $order->discount = $discount;
-            $order->coupon_code_id = $discountCodeId;
-            $order->coupon_code = $promoCode;
-            $order->payment_status = 'not paid';
-            $order->status = 'pending';
-            $order->user_id = $user->id;
-            $order->first_name = $request->first_name;
-            $order->last_name = $request->last_name;
-            $order->email = $request->email;
-            $order->mobile = $request->mobile;
-            $order->country_id = $request->country;
-            $order->address = $request->address;
-            $order->city = $request->city;
-            $order->notes = $request->order_notes;
-            $order->save();
-
-            // step 4 store order items in items table
-
-            foreach (Cart::content() as $item) {
-                $orderItem = new OrderItem();
-                $orderItem->product_id = $item->id;
-                $orderItem->order_id = $order->id;
-                $orderItem->name = $item->name;
-                $orderItem->qty = $item->qty;
-                $orderItem->price = $item->price;
-                $orderItem->total = $item->price * $item->qty;
-                $orderItem->save();
-
-                // Update product stock
-                $productData = Product::find($item->id);
-                if ($productData->track_qty == 'Yes') {
-                    $currentQty = $productData->qty;
-                    $updatedQty = $currentQty - $item->qty;
-                    $productData->qty = $updatedQty;
-                    $productData->save();
-                }
-            }
-            // Send Order Email
-            //orderEmail($order->id, 'customer');
-
-            Session::flash('success', 'You have placed your order succesfully');
-
-            Cart::destroy();
-            session()->forget('code');
-            return response()->json([
-                'status' => true,
-                'message' => "Order saved successfully",
-                'orderId' => $order->id,
-
-            ]);
-        }
-    }
     public function thankyou($id)
     {
         return view('front.thanks', [
