@@ -15,6 +15,10 @@ class ShopController extends Controller
 {
     public function index(Request $request, $categorySlug = null, $subCategorySlug = null)
     {
+        $relatedProducts = Product::latest('id')
+        ->with('product_images')
+        ->with('colors')
+        ->with('sizes');
         $categorySelected  = '';
         $subCategorySelected  = '';
         $brandsArray = [];
@@ -89,6 +93,7 @@ class ShopController extends Controller
     }
     public function product($slug)
     {
+        
         $product = Product::where('slug', $slug)
             ->withCount('product_ratings')
             ->withSum('product_ratings', 'rating')

@@ -36,79 +36,79 @@ class ProductController extends Controller
     }
     public function create()
     {
+        
         $data = [];
         $categories = Category::orderBy('name', 'ASC')->get();
         $brands = Brand::orderBy('name', 'ASC')->get();
         $data['categories'] = $categories;
         $data['brands'] = $brands;
+        $data['productImages'] = collect();
         return view('admin.products.create', $data);
     }
 
     public function store(Request $request)
-    {
+{
+    $rules = [
+        'title' => 'required',
+        'slug' => 'required|unique:products',
+        'price' => 'required|numeric',
+        'sku' => 'required|unique:products',
+        'track_qty' => 'required|in:Yes,No',
+        'category' => 'required|numeric',
+        'is_featured' => 'required|in:Yes,No',
+    ];
 
-        $rules =  [
-            'title' => 'required',
-            'slug' => 'required|unique:products',
-            'price' => 'required|numeric',
-            'sku' => 'required|unique:products',
-            'track_qty' => 'required|in:Yes,No',
-            'category' => 'required|numeric',
-            'is_featured' => 'required|in:Yes,No',
-        ];
-        if (!empty($request->track_qty) && $request->track_qty == 'Yes') {
-            $rules['qty'] = 'required|numeric';
-        }
-        $validator =  Validator::make($request->all(), $rules);
-        if ($validator->passes()) {
-            $product = new Product();
-            $product->title = $request->title;
-            $product->slug = $request->slug;
-            $product->description = $request->description;
-            $product->price = $request->price;
-            $product->compare_price = $request->compare_price;
-            $product->sku = $request->sku;
-            $product->qty = $request->qty;
-            $product->barcode = $request->barcode;
-            $product->track_qty = $request->track_qty;
-            $product->status = $request->status;
-            $product->category_id = $request->category;
-            $product->sub_category_id = $request->sub_category;
-            $product->brand_id = $request->brand;
-            $product->is_featured = $request->is_featured;
-            $product->shipping_returns = $request->shipping_returns;
-            $product->short_description = $request->short_description;
-            $product->related_products = (!empty($request->related_products)) ? implode(',', $request->related_products) : '';
+    if ($request->track_qty == 'Yes') {
+        $rules['qty'] = 'required|numeric';
+    }
 
-            $product->save();
+    $validator = Validator::make($request->all(), $rules);
 
-            if ($request->has('image_id') && $request->image_id != '') {
-                $tempImage = TempImage::find($request->image_id);
+    if ($validator->passes()) {
+        // Tạo sản phẩm mới
+        $product = new Product();
+        $product->fill($request->only([
+            'title', 'slug', 'description', 'price', 'compare_price', 'sku', 'qty',
+            'barcode', 'track_qty', 'status', 'shipping_returns', 'short_description'
+        ]));
+
+        $product->category_id = $request->category;
+        $product->sub_category_id = $request->sub_category;
+        $product->brand_id = $request->brand;
+        $product->is_featured = $request->is_featured;
+        $product->related_products = !empty($request->related_products) ? implode(',', $request->related_products) : '';
+        $product->save();
+
+        // Gắn ảnh đã upload vào sản phẩm
+        if ($request->has('image_array')) {
+            foreach ($request->image_array as $imageId) {
+                $tempImage = ProductImage::find($imageId);
+
                 if ($tempImage) {
-                    $imageName = $tempImage->name;
-                    // Di chuyển file từ temp -> thư mục chính
-                    File::move(public_path('uploads/temp/' . $imageName), public_path('uploads/category/' . $imageName));
-                    File::copy(public_path('uploads/category/' . $imageName), public_path('uploads/category/thumb/' . $imageName));
-                    $product->image = $imageName;
-        
-                    // Xoá ảnh tạm (nếu cần)
-                    $tempImage->delete();
+                    $imageName = $tempImage->image;
+
+                    // Di chuyển ảnh từ temp -> thư mục chính
+                    File::move(public_path('uploads/temp/' . $imageName), public_path('uploads/product/original/' . $imageName));
+                    File::copy(public_path('uploads/product/original/' . $imageName), public_path('uploads/product/thumb/' . $imageName)); // Nếu cần tạo ảnh thu nhỏ
+
+                    // Cập nhật product_id cho ảnh
+                    $tempImage->update(['product_id' => $product->id]);
                 }
             }
-
-            Session::flash('success', 'Products added successfully!');
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Product added successfully'
-            ]);
-        } else {
-            return response()->json([
-                'status' => false,
-                'errors' => $validator->errors()
-            ]);
         }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Product created successfully',
+        ]);
     }
+
+    return response()->json([
+        'status' => false,
+        'errors' => $validator->errors()
+    ]);
+}
+
 
     public function edit($id, Request $request)
     {

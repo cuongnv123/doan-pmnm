@@ -27,7 +27,7 @@
                                 @foreach ($product->product_images as $key => $productImage)
                                     <div class="carousel-item {{ $key == 0 ? 'active' : '' }} ">
                                         <img class="w-100 h-100"
-                                            src="{{ asset('uploads/product/large/' . $productImage->image) }}"
+                                            src="{{ asset('uploads/product/original/' . $productImage->image) }}"
                                             alt="Image">
                                     </div>
                                 @endforeach
@@ -383,16 +383,17 @@
                 <div class="col-md-12">
                     <div id="related-products" class="carousel">
 
-                        @foreach ($relatedProducts as $relProduct)
+                        @if ($products->isNotEmpty())
+                        @foreach ($products as $product)
                             @php
-                                $productImage = $relProduct->product_images->first();
+                                $productImage = $product->product_images->first();
                             @endphp
                             <div class="card product-card">
                                 <div class="product-image position-relative">
                                     <a href="" class="product-img">
                                         @if (!empty($productImage->image))
                                             <img class="card-img-top"
-                                                src="{{ asset('uploads/product/small/' . $productImage->image) }}" />
+                                                src="{{ asset('uploads/product/original/' . $productImage->image) }}" />
                                         @else
                                             <img class="card-img-top"
                                                 src="{{ asset('admin-assets/img/default-150x150.png') }}" />
@@ -434,7 +435,7 @@
                                 </div>
                             </div>
                         @endforeach
-
+                        @endif
                     </div>
                 </div>
 

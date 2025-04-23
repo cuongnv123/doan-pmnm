@@ -63,19 +63,23 @@
                         <tbody>
                             @if ($products->isNotEmpty())
                                 @foreach ($products as $product)
-                                    @php
-                                        $productImage = $product->product_images->first();
-                                    @endphp
+                                @php
+                                    // Lấy ảnh đầu tiên, có thể trả về null
+                                    $firstImage = $product->product_images->first();
+                                    // Xác định đường dẫn đến file (nếu bạn chỉ lưu vào 'original', đổi cho đúng)
+                                    $imgPath = $firstImage
+                                        ? 'uploads/product/original/' . $firstImage->image
+                                        : 'admin-assets/img/default-150x150.png';
+                                @endphp
                                     <tr>
                                         <td>{{ $product->id }}</td>
                                         <td>
-                                            @if (!empty($productImage->image))
-                                                <img src="{{ asset('uploads/product/small/' . $productImage->image) }}"
-                                                    class="img-thumbnail" width="50">
-                                            @else
-                                                <img src="{{ asset('admin-assets/img/default-150x150.png') }}"
-                                                    class="img-thumbnail" width="50">
-                                            @endif
+                                            <img
+                                                src="{{ asset($imgPath) }}"
+                                                class="img-thumbnail"
+                                                width="50"
+                                                
+                                            />
 
                                         </td>
                                         <td><a href="#">{{ $product->title }}</a></td>

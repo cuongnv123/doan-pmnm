@@ -236,7 +236,7 @@
                                 <a href="{{ route('front.product', $product->slug) }}" class="product-img">
                                     @if (!empty($productImage->image))
                                         <img class="card-img-top"
-                                            src="{{ asset('uploads/product/small/' . $productImage->image) }}" />
+                                            src="{{ asset('uploads/product/original/' . $productImage->image) }}" />
                                     @else
                                         <img class="card-img-top"
                                             src="{{ asset('admin-assets/img/default-150x150.png') }}" />
@@ -303,30 +303,6 @@
     </script>
 
 
-    {{-- <div class="text-center pt-3">
-        <!--Icon Left-->
-        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor"
-            class="bi bi-arrow-left-circle-fill text-muted m-3" viewBox="0 0 16 16">
-            <path
-                d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0m3.5 7.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5z" />
-        </svg>
-        <!--Icon Right-->
-        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor"
-            class="bi bi-arrow-right-circle-fill text-muted m-3" viewBox="0 0 16 16">
-            <path
-                d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0M4.5 7.5a.5.5 0 0 0 0 1h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5z" />
-        </svg>
-
-    </div> --}}
-
-
-
-
-
-
-
-    <!--Mid Banner-->
-
     <section class="section-4 pt-5">
         <div class="container">
             <div class="section-title">
@@ -347,7 +323,7 @@
                                     alt=""> --}}
                                         @if (!empty($productImage->image))
                                             <img class="card-img-top"
-                                                src="{{ asset('uploads/product/small/' . $productImage->image) }}" />
+                                                src="{{ asset('uploads/product/original/' . $productImage->image) }}" />
                                         @else
                                             <img class="card-img-top"
                                                 src="{{ asset('admin-assets/img/default-150x150.png') }}" />

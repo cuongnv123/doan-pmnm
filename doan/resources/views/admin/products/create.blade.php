@@ -67,30 +67,17 @@
                                 </div>
                             </div>
                         </div>
-                        {{-- <div class="card mb-3">
+                        <div class="card mb-3">
                             <div class="card-body">
                                 <h2 class="h4 mb-3">Media</h2>
                                 <div id="image" class="dropzone dz-clickable">
-                                    <div class="dz-message needsclick">
-                                        <br>Drop files here or click to upload.<br><br>
-                                    </div>
+                                    <div class="dz-message needsclick">Drop files here or click to upload.</div>
                                 </div>
-                            </div>
-                        </div> --}}
-                        <div class="card mb-3">
-                            <div class="card-body">
-                                <input type="hidden" id="image_id" name="image_id" value="">
-                                <label for="image">Image</label>
-                                <div id="image" class="dropzone dz-clickable">
-                                    <div class="dz-message needsclick ">
-                                        <br>Drop files here or click here to<br><br>
-                                    </div>
-                                </div>
-
                             </div>
                         </div>
+                        
                         <div class="row" id="product-gallerys">
-
+                            {{-- Dropzone images will append here --}}
                         </div>
                         <div class="card mb-3">
                             <div class="card-body">
@@ -201,7 +188,13 @@
                                     </select>
                                     <p class="error"></p>
                                 </div>
-                                
+                                <div class="mb-3">
+                                    <label for="category">Sub category</label>
+                                    <select name="sub_category" id="sub_category" class="form-control">
+                                        <option value="">Select a Sub Category</option>
+
+                                    </select>
+                                </div>
                             </div>
                         </div>
                         <div class="card mb-3">
@@ -302,17 +295,7 @@
                         window.location.href = "{{ route('products.index') }}";
                     } else {
                         var errors = response['errors'];
-                        // if (errors['title']) {
-                        //     $("#title").addClass('is-invalid')
-                        //         .siblings('p')
-                        //         .addClass('invalid-feedback');
-                        //     .html(errors['title']);
-                        // } else {
-                        //     $("#title").removeClass('is-invalid')
-                        //         .siblings('p')
-                        //         .removeClass('invalid-feedback');
-                        //     .html("");
-                        // }
+                        
                         $(".error").removeClass('invalid-feedback').html('');
                         $("input[type='text'],select, input[type='number'] ").removeClass("is-invalid");
                         $.each(errors, function(key, value) {
@@ -350,31 +333,62 @@
                 }
             });
         });
+        
+
         Dropzone.autoDiscover = false;
         const dropzone = $('#image').dropzone({
-            init: function() {
-                this.on("addedfile", function(file) {
-                    if (this.files.length > 1) {
-                        this.removeFile(this.files[0]);
-                    }
-                });
-            },
-            url: "{{ route('temp-images.create') }}",
-            maxFiles: 1,
+            url: "{{ route('product-images.storeTemp') }}",  // Đảm bảo gọi đúng route
+            method: "POST",  
+            maxFiles: 10,
             paramName: 'image',
+            params: {
+                product_id: "{{ isset($product) ? $product->id : '' }}"  // Truyền product_id
+            },
             addRemoveLinks: true,
             acceptedFiles: "image/jpeg,image/png,image/gif",
             headers: {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
             success: function(file, response) {
-                $("#image_id").val(response.image_id);
+                const html = `
+                <div class="col-md-3" id="image-row-${response.image_id}">
+                    <div class="card">
+                        <input type="hidden" name="image_array[]" value="${response.image_id}">
+                        <img src="${response.ImagePath}" class="card-img-top" alt="">
+                        <div class="card-body">
+                            <button type="button" onclick="deleteImage(${response.image_id})" class="btn btn-sm btn-danger">Delete</button>
+                        </div>
+                    </div>
+                </div>`;
+                $('#product-gallerys').append(html);
+            },
+            complete: function(file) {
+                this.removeFile(file);
             }
-
         });
 
+
+            
         function deleteImage(id) {
-            $("#image-row-" + id).remove();
+            if (!confirm("Bạn có chắc muốn xoá ảnh này không?")) return;
+
+            fetch("{{ route('product-images.destroy') }}", {
+            method: "DELETE",
+            headers: {
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ id: id })
+            })
+            .then(res => res.json())
+            .then(json => {
+            if (json.status) {
+                document.getElementById("image-row-" + id).remove();
+            } else {
+                alert("Xoá thất bại: " + json.message);
+            }
+            })
+            .catch(() => alert("Có lỗi xảy ra khi xoá ảnh"));
         }
     </script>
 @endsection

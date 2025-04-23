@@ -120,39 +120,40 @@ class CheckoutController extends Controller
         }
         session()->forget('cart');
 
-        // VNPAY payment setup
-        $code_cart = rand(1000, 9999);
-        $vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
-        $vnp_Returnurl = "http://localhost:8000/thanksVnpay";
-        $vnp_TmnCode = "D5S2SJJ4";
-        $vnp_HashSecret = "6YLXVBMF38ESQ5QX0OBDX57KCIZPLCK4";
-
-        $vnp_TxnRef = $code_cart;
-        $vnp_OrderInfo = 'Thanh toan don hang';
-        $vnp_OrderType = 'billpayment';
-        $vnp_Amount = (float) $subtotal * 100;
-        $vnp_Locale = 'vn';
-        $vnp_BankCode = 'NCB';
-        $vnp_IpAddr = $_SERVER['REMOTE_ADDR'];
-
-        $inputData = array(
-            "vnp_Version" => "2.1.0",
-            "vnp_TmnCode" => $vnp_TmnCode,
-            "vnp_Amount" => $vnp_Amount,
-            "vnp_Command" => "pay",
-            "vnp_CreateDate" => date('YmdHis'),
-            "vnp_CurrCode" => "VND",
-            "vnp_IpAddr" => $vnp_IpAddr,
-            "vnp_Locale" => $vnp_Locale,
-            "vnp_OrderInfo" => $vnp_OrderInfo,
-            "vnp_OrderType" => $vnp_OrderType,
-            "vnp_ReturnUrl" => $vnp_Returnurl,
-            "vnp_TxnRef" => $vnp_TxnRef
-        );
-
-        if (isset($vnp_BankCode)) {
-            $inputData['vnp_BankCode'] = $vnp_BankCode;
-        }
+         // Thiết lập VNPay
+         $code_cart = rand(1000, 9999);
+         $vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
+         $vnp_Returnurl = "http://localhost:8000/thanksVnpay";
+         $vnp_TmnCode = "D5S2SJJ4"; // Mã Website của bạn trên hệ thống VNPAY
+         $vnp_HashSecret = "6YLXVBMF38ESQ5QX0OBDX57KCIZPLCK4"; // Chuỗi bí mật
+ 
+         $vnp_TxnRef = $code_cart;
+         $vnp_OrderInfo = 'Thanh toan don hang';
+         $vnp_OrderType = 'billpayment';
+         $vnp_Amount = (float) $subtotal * 100;
+         $vnp_Locale = 'vn';
+         $vnp_BankCode = 'NCB';
+         $vnp_IpAddr = $_SERVER['REMOTE_ADDR'];
+ 
+         $inputData = [
+             "vnp_Version" => "2.1.0",
+             "vnp_TmnCode" => $vnp_TmnCode,
+             "vnp_Amount" => $vnp_Amount,
+             "vnp_Command" => "pay",
+             "vnp_CreateDate" => date('YmdHis'),
+             "vnp_CurrCode" => "VND",
+             "vnp_IpAddr" => $vnp_IpAddr,
+             "vnp_Locale" => $vnp_Locale,
+             "vnp_OrderInfo" => $vnp_OrderInfo,
+             "vnp_OrderType" => $vnp_OrderType,
+             "vnp_ReturnUrl" => $vnp_Returnurl,
+             "vnp_TxnRef" => $vnp_TxnRef
+         ];
+ 
+         if (!empty($vnp_BankCode)) {
+             $inputData['vnp_BankCode'] = $vnp_BankCode;
+         }
+ 
 
         ksort($inputData);
         $query = "";

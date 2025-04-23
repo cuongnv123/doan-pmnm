@@ -75,22 +75,30 @@
                             </div>
                         </div>
                         <div class="row" id="product-gallerys">
-                            @if ($productImages->isNotEmpty())
-                                @foreach ($productImages as $image)
-                                    <div class="col-md-3" id="image-row-{{ $image->id }}">
-                                        <div class="card">
-                                            <input type="hidden" name="image_array[]" value="{{ $image->id }}">
-                                            <img src="{{ asset('uploads/product/small/' . $image->image) }}"
-                                                class="card-img-top" alt="">
-                                            <div class="card-body">
-                                                <a href="javascript:void(0)" onclick="deleteImage({{ $image->id }})"
-                                                    class="btn btn-danger">Delete</a>
-                                            </div>
+                            @forelse($productImages as $image)
+                                <div class="col-md-3" id="image-row-{{ $image->id }}">
+                                    <div class="card">
+                                        {{-- Ẩn ID để sau khi submit form product, bạn có thể lấy mảng image_array[] --}}
+                                        <input type="hidden" name="image_array[]" value="{{ $image->id }}">
+                                        
+                                        {{-- Dùng folder original nếu bạn không resize nữa --}}
+                                        <img src="{{ asset('uploads/product/original/' . $image->image) }}"
+                                             class="card-img-top" alt="">
+                        
+                                        <div class="card-body text-center">
+                                            <button type="button"
+                                                    onclick="deleteImage({{ $image->id }})"
+                                                    class="btn btn-sm btn-danger">
+                                                Delete
+                                            </button>
                                         </div>
                                     </div>
-                                @endforeach
-                            @endif
+                                </div>
+                            @empty
+                                <p class="text-muted">{{ __('No images uploaded yet') }}</p>
+                            @endforelse
                         </div>
+                        
                         <div class="card mb-3">
                             <div class="card-body">
                                 <h2 class="h4 mb-3">Pricing</h2>
@@ -373,64 +381,66 @@
             });
         });
         Dropzone.autoDiscover = false;
-        const dropzone = $('#image').dropzone({
-            // init: function() {
-            //     this.on("addedfile", function(file) {
-            //         if (this.files.length > 1) {
-            //             this.removeFile(this.files[0]);
-            //         }
-            //     });
-            // },
-            url: "{{ route('product-images.update') }}",
-            maxFiles: 10,
-            paramName: 'image',
-            params: {
-                'product_id': '{{ $product->id }}'
-            },
-            addRemoveLinks: true,
-            acceptedFiles: "image/jpeg,image/png,image/gif",
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            },
-            success: function(file, response) {
-                //$("#image_id").val(response.image_id);
 
-                var html = `<div class="col-md-3" id="image-row-${response.image_id}"><div class="card" >
-                <input type="hidden" name="image_array[]" value="${response.image_id}">
-                <img src="${response.ImagePath}" class="card-img-top" alt="">
-              <div class="card-body">
-                <a href="javascript:void(0)" onclick="deleteImage(${response.image_id})" class="btn btn-danger">Delete</a>
-              </div>
-              </div></div>`;
-
+    // Khởi tạo Dropzone trên thẻ <div id="image" class="dropzone"></div>
+    var productDropzone = new Dropzone("#image", {
+        url: "{{ route('product-images.update') }}", // Route store (POST)
+        method: "post",
+        paramName: "image",
+        params: {
+            product_id: "{{ $product->id }}"
+        },
+        maxFiles: 10,
+        acceptedFiles: "image/jpeg,image/png,image/gif",
+        addRemoveLinks: true,
+        headers: {
+            "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content")
+        },
+        init: function() {
+            this.on("success", function(file, response) {
+                // Thêm HTML hiển thị ảnh mới lên gallery
+                var html = `
+                <div class="col-md-3" id="image-row-${response.image_id}">
+                <div class="card">
+                    <input type="hidden" name="image_array[]" value="${response.image_id}">
+                    <img src="${response.ImagePath}" class="card-img-top" alt="">
+                    <div class="card-body">
+                    <a href="javascript:void(0)"
+                        onclick="deleteImage(${response.image_id})"
+                        class="btn btn-danger">Delete</a>
+                    </div>
+                </div>
+                </div>`;
                 $("#product-gallerys").append(html);
-            },
-            complete: function(file) {
+            });
+
+            this.on("complete", function(file) {
+                // Xóa file preview sau khi upload xong
                 this.removeFile(file);
-            }
-
-        });
-
-        function deleteImage(id) {
-            $("#image-row-" + id).remove();
-            //$("#image-row-" + id).remove();
-            if (confirm("Are you want to delete Image?")) {
-                $.ajax({
-                    url: '{{ route('product-images.destroy') }}',
-                    type: 'DELETE',
-                    data: {
-                        id: id
-                    },
-                    success: function(response) {
-                        if (response.status == true) {
-                            alert(response.message);
-                        } else {
-                            alert(response.message);
-
-                        }
-                    }
-                });
-            }
+            });
         }
+    });
+
+    function deleteImage(id) {
+        if (!confirm("Bạn có chắc muốn xoá ảnh này không?")) return;
+
+        fetch("{{ route('product-images.destroy') }}", {
+        method: "DELETE",
+        headers: {
+            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ id: id })
+        })
+        .then(res => res.json())
+        .then(json => {
+        if (json.status) {
+            document.getElementById("image-row-" + id).remove();
+        } else {
+            alert("Xoá thất bại: " + json.message);
+        }
+        })
+        .catch(() => alert("Có lỗi xảy ra khi xoá ảnh"));
+    }
     </script>
 @endsection

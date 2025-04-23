@@ -128,7 +128,7 @@
                                             <a href="{{ route('front.product', $product->slug) }}" class="product-img">
                                                 @if (!empty($productImage->image))
                                                     <img class="card-img-top"
-                                                        src="{{ asset('uploads/product/small/' . $productImage->image) }}" />
+                                                        src="{{ asset('uploads/product/original/' . $productImage->image) }}" />
                                                 @else
                                                     <img class="card-img-top"
                                                         src="{{ asset('admin-assets/img/default-150x150.png') }}" />

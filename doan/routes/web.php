@@ -214,7 +214,8 @@ Route::group(['prefix' => 'admin'], function () {
 
     Route::post('/product-images/update', [ProductImageController::class, 'update'])->name('product-images.update');
     Route::delete('/product-images', [ProductImageController::class, 'destroy'])->name('product-images.destroy');
-
+    Route::post('/product-images/store-temp', [ProductImageController::class, 'storeTemp'])->name('product-images.store-temp');
+    Route::post('/product-images/store-temp', [ProductImageController::class, 'storeTemp'])->name('product-images.storeTemp');
 
     //Shipping routes
     Route::get('/shipping/create', [ShippingController::class, 'create'])->name('shipping.create');
